@@ -1,0 +1,21 @@
+{
+  // Use IntelliSense to learn about possible Node.js debug attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+                // https://medium.com/@dupski/debug-typescript-in-vs-code-without-compiling-using-ts-node-9d1f4f9a94a
+{
+    "name": "Debug Server",
+    "type": "node",
+		"request": "launch",
+		"env": {
+			"DEBUG": "*"
+		},
+    "program": "${workspaceRoot}/node_modules/ts-node/dist/_bin.js",
+    "args": ["${workspaceRoot}/src/index.ts"],
+    "cwd": "${workspaceRoot}",
+    "protocol": "auto"
+}
+  ]
+}
