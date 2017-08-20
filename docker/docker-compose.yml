@@ -1,0 +1,28 @@
+version: '3'
+services:
+  postgres:
+    image: postgres:9.6
+    container_name: greeting-app-db
+    ports:
+      - "7788:5432"
+    environment:
+      - POSTGRES_PASSWORD=secretpw
+      - POSTGRES_USER=greeter
+      - POSTGRES_DB=greeting_db
+    volumes:
+      - ./init-greeting-db.sql:/docker-entrypoint-initdb.d/init-greeting-db.sql
+      - ./db-data:/var/lib/postgresql/data
+  app:
+    build: ..
+    image: greeting-app:v2
+    container_name: greeting-app-container_v2
+    depends_on: [ "postgres" ]
+    ports:
+      - "7777:3000"
+    environment:
+      - POSTGRES_PASSWORD=secretpw
+      - POSTGRES_USER=greeter
+      - POSTGRES_DB=greeting_db
+      - PGHOST=postgres
+      - PGPORT=5432
+      - DEBUG=*

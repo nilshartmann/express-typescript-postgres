@@ -1,5 +1,5 @@
 import * as express from "express";
-const debug = require("debug")("greeting-app:greetings");
+import { Pool } from "pg";
 
 interface Greeting {
   id: number;
@@ -7,37 +7,42 @@ interface Greeting {
   msg: string;
 }
 
-// "Fake database"
-const greetings: Greeting[] = [
-  { id: 1, name: "Klaus", msg: "Moin" },
-  { id: 2, name: "Susi", msg: "Hello!" },
-  { id: 3, name: "Max", msg: "Bonjour" },
-  { id: 4, name: "Susi", msg: "How are you?" },
-  { id: 5, name: "Max", msg: "Bon soir" },
-  { id: 6, name: "Felipe", msg: "Hola, ¿qué tal?" },
-  { id: 7, name: "Alex", msg: "Happy Birthday" },
-  { id: 8, name: "Felipe", msg: "¡buenos días" },
-  { id: 9, name: "Paul", msg: "Wie gehts?" },
-  { id: 10, name: "Susi", msg: "Have a nice day" }
-];
-
+const debug = require("debug")("greeting-app:greetings");
+const pool = new Pool({
+  user: process.env.POSTGRES_USER || "greeter",
+  database: process.env.POSTGRES_DB || "greeting_db",
+  password: process.env.POSTGRES_PASSWORD || "secretpw",
+  host: process.env.PGHOST || "localhost",
+  port: parseInt(process.env.PGPORT || "7788")
+});
 const router = express.Router();
 
-router.get("/", (req, res) => {
-  res.send(greetings);
+router.get("/", (req, res, next) => {
+  pool
+    .query("select id, name, msg from greeting ORDER BY id ASC")
+    .then(({ rows }) => res.send(rows))
+    .catch(err => next({ msg: "query failed", err }));
 });
 
 router.get("/:id", (req, res, next) => {
-  const id = parseInt(req.params.id);
-  const greeting = greetings.find(g => g.id === id);
-  if (greeting) {
-    res.send(greeting);
-  } else {
-    next({
-      msg: `No Greeting found with id '${id}'`,
-      code: 404
-    });
-  }
+  const id = req.params.id;
+  pool
+    .query("select id, name, msg from greeting where id = $1", [id])
+    .then(({ rowCount, rows }) => {
+      if (rowCount === 0) {
+        return next({
+          msg: `No Greeting found with id '${id}'`,
+          code: 404
+        });
+      }
+      const greeting: Greeting = {
+        id: rows[0].id,
+        name: rows[0].name,
+        msg: rows[0].msg
+      };
+      res.send(greeting);
+    })
+    .catch(err => next({ msg: "Query failed", err }));
 });
 
 router.post(
@@ -54,13 +59,20 @@ router.post(
   },
   (req, res, next) => {
     const body = req.body;
-    const newGreeting = {
-      id: greetings.length + 1,
-      name: body.name,
-      msg: body.msg
-    };
-    greetings.push(newGreeting);
-    return res.send(newGreeting).status(201);
+    pool
+      .query("insert into greeting (name, msg) values ($1, $2) returning *", [
+        body.name,
+        body.msg
+      ])
+      .then(({ rows }) => {
+        const greeting: Greeting = {
+          id: rows[0].id,
+          name: rows[0].name,
+          msg: rows[0].msg
+        };
+        res.send(greeting).status(201);
+      })
+      .catch(err => next({ msg: "Query failed", err }));
   }
 );
 

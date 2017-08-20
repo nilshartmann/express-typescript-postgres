@@ -2,5 +2,5 @@
   "typescript.tsdk": "node_modules/typescript/lib",
   "prettier.singleQuote": false,
   "prettier.tabWidth": 2,
-  "prettier.printWidth": 130
+  "prettier.printWidth": 80
 }
